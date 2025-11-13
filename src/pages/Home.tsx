@@ -40,12 +40,12 @@ export default function Home() {
       {/* HERO */}
       <section className="bg-white">
         <div className="max-w-screen-xl mx-auto px-6 py-12 lg:py-20 flex flex-col lg:flex-row items-center gap-8">
-          <div className="flex-1">
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">
-              স্মার্ট হোমে স্বাগতম — <span className="text-blue-600">ব্যবহারকরুন আর সাশ্রয় করুন</span>
+          <div className="flex-1 max-w-xl">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">
+              স্মার্ট হোমে স্বাগতম — <span className="text-blue-600">বাঁচান সময়, বাঁচান বিদ্যুত</span>
             </h1>
-            <p className="mt-4 text-gray-600 max-w-2xl">
-              সেরা স্মার্ট গ্যাজেট ও হোম অ্যাক্সেসরিজ — দ্রুত ডেলিভারি সহ। আমাদের কালেকশন ঘেঁটে আপনার জীবনকে আরামদায়ক করুন।
+            <p className="mt-4 text-gray-600 max-w-xl">
+              সেরা স্মার্ট গ্যাজেট, দ্রুত ডেলিভারি ও বিশ্বস্ত সার্ভিস। আমাদের নির্বাচিত পণ্যগুলো দেখুন — বাড়ির জীবনে আরাম আনুন।
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -57,7 +57,7 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Search & quick filters */}
+            {/* Search & quick filters (compact) */}
             <div className="mt-6 flex flex-col sm:flex-row gap-3 items-center">
               <div className="flex-1 flex items-center bg-gray-100 rounded-md px-3 py-2">
                 <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,6 +68,7 @@ export default function Home() {
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="প্রোডাক্ট/বিবরণ দিয়ে সার্চ করুন (উদা. হিটার)"
                   className="bg-transparent outline-none w-full text-sm"
+                  aria-label="Search products"
                 />
                 {q && <button onClick={() => setQ("")} className="text-sm text-gray-500 px-2">✕</button>}
               </div>
@@ -81,7 +82,7 @@ export default function Home() {
           </div>
 
           {/* HERO IMAGE */}
-          <div className="w-full lg:w-1/2">
+          <div className="w-full lg:w-1/2 hidden md:block">
             <div className="rounded-lg overflow-hidden shadow-lg">
               <img src="/hero.jpg" alt="hero" className="w-full h-64 md:h-80 lg:h-96 object-cover" />
             </div>
@@ -140,7 +141,7 @@ export default function Home() {
               </Link>
 
               <div className="p-4 flex-1 flex flex-col">
-                <h3 className="text-sm md:text-base font-medium text-gray-900">{p.title}</h3>
+                <h3 className="text-sm md:text-base font-medium text-gray-900 leading-tight">{p.title}</h3>
                 <p className="text-xs text-gray-500 mt-2 line-clamp-2">{typeof p.description === "string" ? p.description : ""}</p>
 
                 <div className="mt-4 flex items-center justify-between">

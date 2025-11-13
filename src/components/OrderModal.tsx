@@ -95,9 +95,6 @@ export default function OrderModal({
         status: "pending",
       })
 
-      // quick toast + thank you popup
-      toast.success("✅ অর্ডার সফলভাবে জমা হয়েছে")
-      setShowThanks(true)
 
       // non-blocking notify (if you have a webhook)
       ;(async () => {
