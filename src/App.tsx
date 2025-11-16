@@ -12,6 +12,7 @@ import AdminLayout from "./pages/admin/AdminLayout"
 import Dashboard from "./pages/admin/Dashboard"
 import Orders from "./pages/admin/Orders"
 import AddProduct from "./pages/admin/AddProduct"
+import Products from "./pages/admin/Products"
 // (optional) admin products management page
 
 
@@ -53,7 +54,7 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="add-product" element={<AddProduct />} />
-            
+            <Route path="/admin/products" element={<Products />} />
           </Route>
 
           {/* fallback: optional 404 route */}
