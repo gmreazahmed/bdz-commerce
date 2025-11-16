@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { collection, query, orderBy, getDocs, updateDoc, doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../firebase/firebase"
 
@@ -15,7 +15,7 @@ function toCsv(rows: any[]) {
 export default function Orders() {
   const [orders, setOrders] = useState<any[]>([])
   const [selected, setSelected] = useState<Record<string,boolean>>({})
-  const [busy, setBusy] = useState(false)
+  const [, setBusy] = useState(false)
 
   useEffect(()=>{ fetchOrders() },[])
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react"
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { collection, query, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../../firebase/firebase"
 import { Link } from "react-router-dom"
 
@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [pending, setPending] = useState(0)
   const [confirmed, setConfirmed] = useState(0)
   const [revenueEstimate, setRevenueEstimate] = useState(0)
-  const [loading, setLoading] = useState(false)
+  const [, setLoading] = useState(false)
 
   useEffect(() => {
     fetchSummary()
