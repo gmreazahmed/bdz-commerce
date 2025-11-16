@@ -5,8 +5,15 @@ import Navbar from "./components/Navbar"
 import Footer from "./components/Footer"
 import Home from "./pages/Home"
 import ProductPage from "./pages/ProductPage"
-import AdminPage from "./pages/AdminPage"
 import { initFacebookPixel } from "./lib/facebook-pixel"
+
+// admin pages / layout
+import AdminLayout from "./pages/admin/AdminLayout"
+import Dashboard from "./pages/admin/Dashboard"
+import Orders from "./pages/admin/Orders"
+import AddProduct from "./pages/admin/AddProduct"
+// (optional) admin products management page
+
 
 export default function App() {
   const location = useLocation()
@@ -16,8 +23,6 @@ export default function App() {
     const pixelId = import.meta.env.VITE_FB_PIXEL_ID || ""
     if (pixelId) {
       initFacebookPixel(String(pixelId))
-    } else {
-      // optional: console.info('No FB Pixel configured')
     }
   }, [])
 
@@ -38,9 +43,21 @@ export default function App() {
       <Navbar />
       <main className="flex-1">
         <Routes>
+          {/* public routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<AdminPage/>} />
           <Route path="/product/:id" element={<ProductPage />} />
+
+          {/* nested admin routes under /admin using AdminLayout */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="add-product" element={<AddProduct />} />
+            
+          </Route>
+
+          {/* fallback: optional 404 route */}
+          <Route path="*" element={<div className="p-12 text-center">404 — Page not found</div>} />
         </Routes>
       </main>
       <Footer />
