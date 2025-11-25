@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { PRODUCTS } from "../data/products"
 import type { Product } from "../data/products"
 import { useMemo, useState } from "react"
+import img from "../assets/hero.jpg"
 
 export default function Home() {
   const [q, setQ] = useState("")
@@ -82,11 +83,16 @@ export default function Home() {
           </div>
 
           {/* HERO IMAGE */}
-          <div className="w-full lg:w-1/2 hidden md:block">
-            <div className="rounded-lg overflow-hidden shadow-lg">
-              <img src="/hero.jpg" alt="hero" className="w-full h-64 md:h-80 lg:h-96 object-cover" />
+            <div className="w-full lg:w-1/2 hidden md:block">
+              <div className="rounded-lg overflow-hidden shadow-lg">
+                <img 
+                  src={img} 
+                  alt="hero" 
+                  className="w-full h-64 md:h-80 lg:h-96 object-cover" 
+                />
+              </div>
             </div>
-          </div>
+
         </div>
       </section>
 
