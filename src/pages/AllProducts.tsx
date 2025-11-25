@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react"
+// src/pages/AllProducts.tsx
 import { Link } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
 import type { Product } from "../data/products"
 import { PRODUCTS as LOCAL_PRODUCTS } from "../data/products"
-
-// optional firestore fetch (modular)
 import { getApp, initializeApp } from "firebase/app"
-import { getFirestore, collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore"
+import { getFirestore, collection, getDocs, query, orderBy, limit } from "firebase/firestore"
 
-async function fetchProductsFromFirestore(limitCount = 100, startAfterDoc?: any): Promise<Product[]> {
+async function fetchProductsFromFirestore(limitCount = 100): Promise<Product[]> {
   try {
     let app
     try { app = getApp() } catch (e) {
@@ -23,7 +22,7 @@ async function fetchProductsFromFirestore(limitCount = 100, startAfterDoc?: any)
       app = initializeApp(cfg)
     }
     const db = getFirestore(app)
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(limitCount))
+    const q = query(collection(db, "products"), orderBy("createdAt","desc"), limit(limitCount))
     const snap = await getDocs(q)
     return snap.docs.map(d => {
       const data = d.data() as any
@@ -34,11 +33,9 @@ async function fetchProductsFromFirestore(limitCount = 100, startAfterDoc?: any)
         price: Number(data.price || 0),
         regularPrice: data.regularPrice ? Number(data.regularPrice) : undefined,
         images: Array.isArray(data.images) ? data.images : (data.images ? [data.images] : []),
-        category: data.category || undefined,
       } as Product
     })
   } catch (err) {
-    // throw to signal fallback
     throw err
   }
 }
@@ -47,12 +44,9 @@ export default function AllProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // UI state
   const [q, setQ] = useState("")
-  const [category, setCategory] = useState<string | null>(null)
   const [sort, setSort] = useState<"featured" | "price-asc" | "price-desc">("featured")
-  const [perPage] = useState(12) // items shown initially (Load more will show all loaded items)
+  const [perPage] = useState(12)
   const [visibleCount, setVisibleCount] = useState(perPage)
 
   useEffect(() => {
@@ -72,16 +66,8 @@ export default function AllProducts() {
     return () => { mounted = false }
   }, [])
 
-  // derived categories
-  const categories = useMemo(() => {
-    const s = new Set<string>()
-    products.forEach((p: any) => { if (p?.category) s.add(p.category) })
-    return Array.from(s)
-  }, [products])
-
   const filtered = useMemo(() => {
     let list = products.slice()
-    if (category) list = list.filter(p => p.category === category)
     if (q.trim()) {
       const s = q.trim().toLowerCase()
       list = list.filter(p =>
@@ -92,7 +78,7 @@ export default function AllProducts() {
     if (sort === "price-asc") list.sort((a, b) => (a.price || 0) - (b.price || 0))
     if (sort === "price-desc") list.sort((a, b) => (b.price || 0) - (a.price || 0))
     return list
-  }, [products, q, category, sort])
+  }, [products, q, sort])
 
   const shown = filtered.slice(0, visibleCount)
   const canLoadMore = visibleCount < filtered.length
@@ -100,27 +86,15 @@ export default function AllProducts() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-screen-xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">All Products</h1>
             <p className="text-sm text-gray-500 mt-1">{filtered.length} টি পণ্য — {error ? <span className="text-yellow-600">{error}</span> : null}</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center bg-white border rounded px-3 py-1.5">
-              <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-              </svg>
-              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products" className="outline-none text-sm w-48 md:w-64" />
-              {q && <button onClick={() => setQ("")} className="ml-2 text-sm text-gray-500">✕</button>}
-            </div>
-
-            <select value={category ?? ""} onChange={e => setCategory(e.target.value || null)} className="text-sm rounded border px-3 py-1.5 bg-white">
-              <option value="">All categories</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            <select value={sort} onChange={e => setSort(e.target.value as any)} className="text-sm rounded border px-3 py-1.5 bg-white">
+          <div className="flex items-stretch gap-3">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products" className="outline-none text-sm border rounded px-3 py-2" />
+            <select value={sort} onChange={e => setSort(e.target.value as any)} className="text-sm rounded border px-3 py-2 bg-white">
               <option value="featured">Featured</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
@@ -160,9 +134,7 @@ export default function AllProducts() {
               ))}
             </div>
 
-            {filtered.length === 0 && (
-              <div className="text-center py-12 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>
-            )}
+            {filtered.length === 0 && <div className="text-center py-12 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>}
 
             {filtered.length > perPage && (
               <div className="mt-8 flex justify-center">

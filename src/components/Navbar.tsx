@@ -19,7 +19,7 @@ export default function Navbar() {
 
           <div className="flex items-center gap-3">
             <Link to="/" className="text-sm text-gray-700 hover:text-gray-900">Home</Link>
-            <Link to="/products" className="text-sm text-gray-700 hover:text-gray-900">Products</Link>
+            <Link to="/all-products" className="text-sm text-gray-700 hover:text-gray-900">Products</Link>
           </div>
         </div>
       </div>
