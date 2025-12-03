@@ -21,7 +21,7 @@ async function fetchProductsFromFirestore(limitCount = 200): Promise<Product[]> 
     let app;
     try {
       app = getApp();
-    } catch (e) {
+    } catch {
       const cfg = {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
         authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -67,6 +67,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"featured" | "price-asc" | "price-desc">("featured");
   const [category, setCategory] = useState<string | "all">("all");
+  const [showFilterMobile, setShowFilterMobile] = useState(false);
 
   const [products, setProducts] = useState<Product[]>(LOCAL_PRODUCTS);
   const [loading, setLoading] = useState<boolean>(true);
@@ -91,21 +92,12 @@ export default function Home() {
         console.warn("Firestore products unavailable — falling back to local", err);
         if (mounted) {
           setProducts(LOCAL_PRODUCTS);
-          setError("লিভস্টোর/ফায়ারবেস পাওয়া যায়নি — লোকাল পণ্য দেখানো হচ্ছে।");
+          setError("ফায়ারবেস পাওয়া যায়নি — লোকাল পণ্য দেখানো হচ্ছে।");
         }
       })
       .finally(() => {
         if (mounted) setLoading(false);
       });
-      {/* show fetch error if any */}
-      {error && (
-        <div className="max-w-screen-xl mx-auto px-6 py-3">
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-yellow-700 rounded">
-            {error}
-          </div>
-        </div>
-      )}
-
 
     return () => {
       mounted = false;
@@ -115,7 +107,7 @@ export default function Home() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => {
-      if (p.category) set.add(String(p.category));
+      if ((p as any).category) set.add(String((p as any).category));
     });
     return ["all", ...Array.from(set)];
   }, [products]);
@@ -123,7 +115,7 @@ export default function Home() {
   const filtered = useMemo(() => {
     let list = products.slice();
 
-    if (category !== "all") list = list.filter((p) => String(p.category) === category);
+    if (category !== "all") list = list.filter((p) => String((p as any).category) === category);
 
     if (query.trim()) {
       const s = query.trim().toLowerCase();
@@ -144,14 +136,18 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* HERO */}
       <header className="relative overflow-hidden">
-        <div className="max-w-screen-xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-white px-3 py-1 rounded-full text-sm text-blue-700 w-max shadow-sm">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 2v6"/><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M5 11h14"/><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 22v-6"/></svg>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 2v6" />
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M5 11h14" />
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 22v-6" />
+              </svg>
               জনপ্রিয় — ট্রাস্টেড গ্যাজেট
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
               স্মার্ট হোমের উন্নত্‌ অভিজ্ঞতা — <span className="text-indigo-600">কম খরচে</span>
             </h1>
 
@@ -160,27 +156,19 @@ export default function Home() {
             </p>
 
             <div className="flex flex-wrap gap-3 items-center">
-              <Link to="/all-products" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-lg shadow-md font-medium">
+              <Link to="/all-products" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md font-medium text-sm">
                 সকল প্রোডাক্ট দেখুন
               </Link>
 
-              <Link to="/offers" className="inline-flex items-center gap-2 border border-gray-200 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+              <Link to="/offers" className="inline-flex items-center gap-2 border border-gray-200 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
                 আজকের ডিল
               </Link>
-            </div>
-
-            <div className="mt-6">
-              <ul className="flex flex-wrap gap-2 text-xs">
-                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">Free shipping 500৳+</li>
-                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">30-day returns</li>
-                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">Secure checkout</li>
-              </ul>
             </div>
           </div>
 
           <div className="lg:col-span-5 flex justify-end">
-            <div className="rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg transform hover:scale-[1.01] transition">
-              <img src={heroImg} alt="hero" className="w-full h-96 object-cover" loading="lazy" />
+            <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-md transform hover:scale-[1.01] transition">
+              <img src={heroImg} alt="hero" className="w-full h-48 sm:h-64 md:h-80 object-cover" loading="lazy" />
               <div className="p-4 bg-gradient-to-t from-black/30 to-transparent text-white">
                 <div className="text-sm font-semibold">Limited collection</div>
                 <div className="text-xs mt-1">বাছাইকৃত ভালো পণ্য, সীমিত স্টকে</div>
@@ -190,22 +178,43 @@ export default function Home() {
         </div>
       </header>
 
+      {/* show fetch error if any (outside effect) */}
+      {error && (
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-yellow-700 rounded">
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* PRODUCTS */}
-      <main className="max-w-screen-xl mx-auto px-6 py-12">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* heading + controls */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">সর্বশেষ পণ্য</h2>
             <div className="text-sm text-gray-500 mt-1">{filtered.length} টি পণ্য পাওয়া গেছে</div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* mobile: show filter toggle */}
+            <button
+              onClick={() => setShowFilterMobile((s) => !s)}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border rounded-lg text-sm shadow-sm md:hidden"
+            >
+              Filters
+              <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 12h10M10 20h4" />
+              </svg>
+            </button>
+
+            {/* search */}
             <div className="relative">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="প্রোডাক্ট নাম/বর্ণনা দিয়ে সার্চ করুন..."
-                className="pl-10 pr-3 py-2 rounded-lg border bg-white shadow-sm w-64 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                className="pl-10 pr-3 py-2 rounded-lg border bg-white shadow-sm w-56 sm:w-64 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 aria-label="Search products"
               />
               <svg className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -213,90 +222,113 @@ export default function Home() {
               </svg>
             </div>
 
-            <div className="text-sm text-gray-600 hidden sm:block">Category:</div>
-            <div className="flex gap-2 flex-wrap">
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c as any)}
-                  className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                    category === c ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {c === "all" ? "All" : c}
-                </button>
-              ))}
-            </div>
+            {/* desktop controls */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="text-sm text-gray-600">Category:</div>
+              <div className="flex gap-2 flex-wrap">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCategory(c as any)}
+                    className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                      category === c ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {c === "all" ? "All" : c}
+                  </button>
+                ))}
+              </div>
 
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as any)}
-              className="ml-2 text-sm rounded-lg border px-3 py-2 bg-white shadow-sm"
-              aria-label="Sort products"
-            >
-              <option value="featured">Featured</option>
-              <option value="price-asc">Price: Low → High</option>
-              <option value="price-desc">Price: High → Low</option>
-            </select>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as any)}
+                className="ml-2 text-sm rounded-lg border px-3 py-2 bg-white shadow-sm"
+                aria-label="Sort products"
+              >
+                <option value="featured">Featured</option>
+                <option value="price-asc">Price: Low → High</option>
+                <option value="price-desc">Price: High → Low</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        {/* mobile filters (collapsible) */}
+        {showFilterMobile && (
+          <div className="mb-4 md:hidden">
+            <div className="bg-white border rounded-lg p-3 shadow-sm">
+              <div className="mb-2 text-sm font-medium">Categories</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      setCategory(c as any);
+                      setShowFilterMobile(false);
+                    }}
+                    className={`flex-shrink-0 text-sm px-3 py-1.5 rounded-full border ${
+                      category === c ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200"
+                    }`}
+                  >
+                    {c === "all" ? "All" : c}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-3">
+                <div className="text-sm mb-1">Sort</div>
+                <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="w-full rounded-lg border px-3 py-2 text-sm">
+                  <option value="featured">Featured</option>
+                  <option value="price-asc">Price: Low → High</option>
+                  <option value="price-desc">Price: High → Low</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* product grid */}
         {loading ? (
           <div className="text-center py-12 text-gray-500">Loading products…</div>
         ) : (
           <>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {filtered.map((p) => (
-                <article key={p.id} className="relative bg-white rounded-2xl shadow-md overflow-hidden group hover:shadow-xl transition">
-                  <div className="relative">
-                    <Link to={`/product/${p.id}`} state={{ product: p }} className="block">
-                      <div className="w-full h-56 bg-gray-100 overflow-hidden">
+                <article key={p.id} className="bg-white rounded-xl shadow-sm overflow-hidden transition hover:shadow-md">
+                  <Link to={`/product/${p.id}`} state={{ product: p }} className="block">
+                    <div className="relative">
+                      <div className="w-full h-44 sm:h-40 md:h-44 bg-gray-100 overflow-hidden">
                         <img
                           src={p.images?.[0] || "/placeholder.png"}
                           alt={p.title}
-                          className="w-full h-full object-cover transform group-hover:scale-105 transition duration-300"
+                          className="w-full h-full object-cover transform transition duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
                       </div>
-                    </Link>
-
-                    {/* price badge */}
-                    <div className="absolute right-3 top-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold text-indigo-700 shadow-sm">
-                      ৳ {Number(p.price).toLocaleString()}
-                    </div>
-
-                    {/* quick actions overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-end justify-center opacity-0 group-hover:opacity-100">
-                      <div className="mb-4 flex gap-2">
-                        <Link to={`/product/${p.id}`} state={{ product: p }} className="bg-white px-3 py-2 rounded-lg text-sm font-medium shadow hover:bg-gray-100">View</Link>
-                        <button className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700">Add</button>
+                      <div className="absolute right-3 top-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold text-indigo-700 shadow-sm">
+                        ৳ {Number(p.price).toLocaleString()}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="p-4">
-                    <h3 className="text-base font-semibold text-gray-800 line-clamp-2">{p.title}</h3>
-                    <p className="text-xs text-gray-500 mt-2 line-clamp-3">{excerpt(p.description, 120)}</p>
+                    <div className="p-3">
+                      <h3 className="text-sm font-semibold text-gray-800 line-clamp-2">{p.title}</h3>
+                      <p className="text-xs text-gray-500 mt-2 line-clamp-3">{excerpt(p.description, 100)}</p>
 
-                    <div className="mt-4 flex items-center justify-between">
-                      <div>
-                        {p.regularPrice && <div className="text-xs text-gray-400 line-through">৳ {Number(p.regularPrice).toLocaleString()}</div>}
-                        <div className="text-sm text-gray-700">{p.category ?? ""}</div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-sm text-gray-500">Rating</div>
-                        <div className="text-xs text-gray-400">⭐⭐⭐⭐☆</div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="text-xs text-gray-500">{p.regularPrice ? <span className="line-through">৳ {Number(p.regularPrice).toLocaleString()}</span> : null}</div>
+                        <div className="flex gap-2">
+                          <Link to={`/product/${p.id}`} state={{ product: p }} className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg">View</Link>
+                          <button className="text-xs px-3 py-1 border rounded-lg">Wishlist</button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </article>
               ))}
             </div>
 
             {filtered.length === 0 && (
-              <div className="text-center py-16 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>
+              <div className="text-center py-12 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>
             )}
           </>
         )}
