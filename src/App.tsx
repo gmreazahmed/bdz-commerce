@@ -6,6 +6,7 @@ import Footer from "./components/Footer"
 import Home from "./pages/Home"
 import ProductPage from "./pages/ProductPage"
 import { initFacebookPixel } from "./lib/facebook-pixel"
+import AllProducts from "./pages/AllProducts"
 
 // admin pages / layout
 import AdminLayout from "./pages/admin/AdminLayout"
@@ -13,7 +14,7 @@ import Dashboard from "./pages/admin/Dashboard"
 import Orders from "./pages/admin/Orders"
 import AddProduct from "./pages/admin/AddProduct"
 import Products from "./pages/admin/Products"
-import AllProducts from "./pages/AllProducts"
+
 
 export default function App() {
   const location = useLocation()
@@ -40,6 +41,7 @@ export default function App() {
           {/* public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="all-products" element={<AllProducts />} />
 
           {/* admin routes */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -48,7 +50,7 @@ export default function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="add-product" element={<AddProduct />} />
             <Route path="products" element={<Products />} />
-            <Route path="all-products" element={<AllProducts />} />
+            
           </Route>
 
           {/* fallback */}
