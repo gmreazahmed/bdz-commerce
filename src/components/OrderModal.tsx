@@ -1,21 +1,21 @@
-import React, { useEffect, useRef, useState } from "react"
-import { addDoc, collection, serverTimestamp } from "firebase/firestore"
-import { db } from "../firebase/firebase"
-import toast from "react-hot-toast"
+import React, { useEffect, useRef, useState } from "react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase/firebase";
+import toast from "react-hot-toast";
 
 /** price parsing helper (handles Bangla digits & symbols) */
 function parsePriceToNumber(val: any) {
-  if (val == null) return 0
-  if (typeof val === "number") return val
-  let s = String(val)
-  const bn = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"]
+  if (val == null) return 0;
+  if (typeof val === "number") return val;
+  let s = String(val);
+  const bn = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
   for (let i = 0; i < bn.length; i++) {
-    const re = new RegExp(bn[i], "g")
-    s = s.replace(re, String(i))
+    const re = new RegExp(bn[i], "g");
+    s = s.replace(re, String(i));
   }
-  s = s.replace(/[^\d.-]/g, "")
-  const f = parseFloat(s)
-  return isNaN(f) ? 0 : f
+  s = s.replace(/[^\d.-]/g, "");
+  const f = parseFloat(s);
+  return isNaN(f) ? 0 : f;
 }
 
 export default function OrderModal({
@@ -23,60 +23,61 @@ export default function OrderModal({
   quantity: initialQuantity = 1,
   onClose,
 }: {
-  product: any
-  quantity?: number
-  onClose?: () => void
+  product: any;
+  quantity?: number;
+  onClose?: () => void;
 }) {
-  const [name, setName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [address, setAddress] = useState("")
-  const [quantity, setQuantity] = useState<number>(initialQuantity || 1)
-  const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const nameRef = useRef<HTMLInputElement | null>(null)
-  const formRef = useRef<HTMLFormElement | null>(null)
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [quantity, setQuantity] = useState<number>(initialQuantity || 1);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   // delivery
-  const [deliveryType, setDeliveryType] = useState<"inside" | "outside">("inside")
-  const [showThanks, setShowThanks] = useState(false)
+  const [deliveryType, setDeliveryType] = useState<"inside" | "outside">("inside");
+  const [showThanks, setShowThanks] = useState(false);
 
   // price calculations
-  const unitPrice = parsePriceToNumber(product?.price)
-  const itemsTotal = unitPrice * (Number(quantity) || 0)
-  const deliveryFee = deliveryType === "inside" ? 80 : 120
-  const grandTotal = itemsTotal + deliveryFee
-  const fmt = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n)
+  const unitPrice = parsePriceToNumber(product?.price);
+  const itemsTotal = unitPrice * (Number(quantity) || 0);
+  const deliveryFee = deliveryType === "inside" ? 80 : 120;
+  const grandTotal = itemsTotal + deliveryFee;
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
 
   useEffect(() => {
-    setTimeout(() => nameRef.current?.focus(), 40)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    setTimeout(() => nameRef.current?.focus(), 40);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose?.()
-    }
-    window.addEventListener("keydown", onKey)
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev
-      window.removeEventListener("keydown", onKey)
-    }
-  }, [onClose])
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
 
   function validate() {
-    const errs: Record<string, string> = {}
-    if (!name.trim()) errs.name = "নাম লিখুন"
-    const digits = phone.toString().replace(/\D/g, "")
-    if (digits.length < 10) errs.phone = "ভাল মোবাইল নম্বর দিন"
-    if (!address.trim()) errs.address = "ঠিকানা লিখুন"
-    if (!quantity || quantity < 1) errs.quantity = "কমপক্ষে ১টি নির্বাচন করুন"
-    setErrors(errs)
-    return Object.keys(errs).length === 0
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "নাম লিখুন";
+    const digits = phone.toString().replace(/\D/g, "");
+    if (digits.length < 10) errs.phone = "ভাল মোবাইল নম্বর দিন";
+    if (!address.trim()) errs.address = "ঠিকানা লিখুন";
+    if (!quantity || quantity < 1) errs.quantity = "কমপক্ষে ১টি নির্বাচন করুন";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit(e?: React.FormEvent) {
-    if (e) e.preventDefault()
-    if (!validate()) return
-    setLoading(true)
+  async function handleSubmit(e?: React.FormEvent | undefined) {
+    if (e && typeof (e as Event).preventDefault === "function") (e as Event).preventDefault();
+    if (!validate()) return;
+    setLoading(true);
 
     try {
       const docRef = await addDoc(collection(db, "orders"), {
@@ -93,13 +94,12 @@ export default function OrderModal({
         address,
         createdAt: serverTimestamp(),
         status: "pending",
-      })
-
+      });
 
       // non-blocking notify (if you have a webhook)
-      ;(async () => {
+      (async () => {
         try {
-          const notifyUrl = (import.meta.env as any).VITE_NOTIFY_URL || "/api/notify"
+          const notifyUrl = (import.meta.env as any).VITE_NOTIFY_URL || "/api/notify";
           await fetch(notifyUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -116,34 +116,38 @@ export default function OrderModal({
               phone,
               address,
             }),
-          })
+          });
         } catch (err) {
-          console.error("Notify failed", err)
+          console.error("Notify failed", err);
         }
-      })()
+      })();
 
-      // clear
-      setName("")
-      setPhone("")
-      setAddress("")
-      setQuantity(1)
-      setDeliveryType("inside")
+      // success UX: toast + show thank-you popup
+      toast.success("🎉 আপনার অর্ডার সফলভাবে জমা হয়েছে!");
+      setShowThanks(true);
+
+      // clear fields
+      setName("");
+      setPhone("");
+      setAddress("");
+      setQuantity(1);
+      setDeliveryType("inside");
 
       // autohide thank you and close
       setTimeout(() => {
-        setShowThanks(false)
-        onClose?.()
-      }, 3200)
+        setShowThanks(false);
+        onClose?.();
+      }, 3200);
     } catch (err) {
-      console.error(err)
-      toast.error("❌ অর্ডার জমা দিতে সমস্যা হয়েছে — আবার চেষ্টা করুন")
+      console.error(err);
+      toast.error("❌ অর্ডার জমা দিতে সমস্যা হয়েছে — আবার চেষ্টা করুন");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   function backdropClick(e: React.MouseEvent) {
-    if (e.target === containerRef.current) onClose?.()
+    if (e.target === containerRef.current) onClose?.();
   }
 
   return (
@@ -173,7 +177,9 @@ export default function OrderModal({
               </p>
             </div>
 
-            <button onClick={onClose} className="text-white/95 hover:text-white text-xl leading-none" title="বন্ধ করুন" aria-label="Close">✕</button>
+            <button onClick={onClose} className="text-white/95 hover:text-white text-xl leading-none" title="বন্ধ করুন" aria-label="Close">
+              ✕
+            </button>
           </div>
 
           {/* Content (scrollable) */}
@@ -195,8 +201,8 @@ export default function OrderModal({
                   <input
                     value={quantity}
                     onChange={(e) => {
-                      const v = parseInt(e.target.value || "1", 10)
-                      setQuantity(isNaN(v) ? 1 : Math.max(1, v))
+                      const v = parseInt(e.target.value || "1", 10);
+                      setQuantity(isNaN(v) ? 1 : Math.max(1, v));
                     }}
                     className="w-28 text-center px-3 py-2 outline-none text-sm"
                     aria-label="Quantity"
@@ -294,7 +300,7 @@ export default function OrderModal({
               <button onClick={onClose} className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50">বাতিল</button>
 
               <button
-                onClick={() => formRef.current?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))}
+                onClick={() => handleSubmit()}
                 disabled={loading}
                 className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm text-sm"
               >
@@ -315,7 +321,7 @@ export default function OrderModal({
               <h4 className="text-xl font-bold text-gray-800 mb-1">ধন্যবাদ!</h4>
               <p className="text-sm text-gray-600 mb-4">আপনার অর্ডার সফলভাবে জমা হয়েছে। আমরা দ্রুত যোগাযোগ করবো।</p>
               <div className="flex justify-center">
-                <button onClick={() => { setShowThanks(false); onClose?.() }} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">ঠিক আছে</button>
+                <button onClick={() => { setShowThanks(false); onClose?.(); }} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">ঠিক আছে</button>
               </div>
             </div>
           </div>
@@ -331,5 +337,5 @@ export default function OrderModal({
         </div>
       )}
     </>
-  )
+  );
 }

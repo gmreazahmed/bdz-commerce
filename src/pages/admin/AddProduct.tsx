@@ -13,7 +13,22 @@ type ProductPayload = {
   regularPrice?: number | null;
   images: string[];
   createdAt: Date;
+  slug?: string; // <- slug will be saved
 };
+
+/** Simple slugify helper (keeps result ASCII-friendly) */
+function slugify(s: string) {
+  return s
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+    .replace(/[^a-z0-9\s-]/g, "") // remove invalid chars
+    .replace(/\s+/g, "-") // spaces -> dashes
+    .replace(/-+/g, "-") // collapse dashes
+    .replace(/^-+|-+$/g, ""); // trim dashes
+}
 
 export default function AddProduct() {
   const [title, setTitle] = useState("");
@@ -134,6 +149,11 @@ export default function AddProduct() {
     setBusy(true);
     setNotice(null);
 
+    // create slug: readable slug + short suffix to avoid collisions
+    const base = slugify(title || "product");
+    const suffix = Date.now().toString(36).slice(-5);
+    const slug = `${base}-${suffix}`;
+
     const payload: ProductPayload = {
       title,
       description,
@@ -141,6 +161,7 @@ export default function AddProduct() {
       regularPrice: regularPrice ? Number(regularPrice) : null,
       images: images.split(",").map((s) => s.trim()).filter(Boolean),
       createdAt: new Date(),
+      slug, // save slug so frontend can link by /product/:slug
     };
 
     try {
