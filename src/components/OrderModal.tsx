@@ -1,3 +1,4 @@
+// src/components/OrderModal.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
@@ -50,14 +51,18 @@ export default function OrderModal({
     new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
 
   useEffect(() => {
-    setTimeout(() => nameRef.current?.focus(), 40);
+    // focus the name input shortly after mount
+    const t = setTimeout(() => nameRef.current?.focus(), 40);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", onKey);
+
     return () => {
+      clearTimeout(t);
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
@@ -67,16 +72,20 @@ export default function OrderModal({
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = "নাম লিখুন";
     const digits = phone.toString().replace(/\D/g, "");
-    if (digits.length < 10) errs.phone = "ভাল মোবাইল নম্বর দিন";
+    if (digits.length < 10) errs.phone = "মোবাইল নম্বর দিন";
     if (!address.trim()) errs.address = "ঠিকানা লিখুন";
     if (!quantity || quantity < 1) errs.quantity = "কমপক্ষে ১টি নির্বাচন করুন";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit(e?: React.FormEvent | undefined) {
-    if (e && typeof (e as Event).preventDefault === "function") (e as Event).preventDefault();
-    if (!validate()) return;
+  // Typed for HTML form event (no unsafe casting)
+  async function handleSubmit(e?: React.FormEvent<HTMLFormElement>) {
+    if (e) e.preventDefault();
+    if (!validate()) {
+      toast.error("অনুগ্রহ করে ফর্মটি ঠিকভাবে পূরণ করুন");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -96,7 +105,7 @@ export default function OrderModal({
         status: "pending",
       });
 
-      // non-blocking notify (if you have a webhook)
+      // optional webhook notify (non-blocking)
       (async () => {
         try {
           const notifyUrl = (import.meta.env as any).VITE_NOTIFY_URL || "/api/notify";
@@ -122,18 +131,19 @@ export default function OrderModal({
         }
       })();
 
-      // success UX: toast + show thank-you popup
+      // Success UX: toast + thanks popup
       toast.success("🎉 আপনার অর্ডার সফলভাবে জমা হয়েছে!");
       setShowThanks(true);
 
-      // clear fields
+      // reset
       setName("");
       setPhone("");
       setAddress("");
       setQuantity(1);
       setDeliveryType("inside");
+      setErrors({});
 
-      // autohide thank you and close
+      // auto-close after a short delay
       setTimeout(() => {
         setShowThanks(false);
         onClose?.();
