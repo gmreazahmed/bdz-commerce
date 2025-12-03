@@ -15,7 +15,6 @@ type Product = {
   images: string[];
   category?: string;
   createdAt?: any;
-  slug?: string;
 };
 
 export default function ProductPage() {
@@ -59,7 +58,7 @@ export default function ProductPage() {
       }
 
       // try local PRODUCTS (match id or slug)
-      const local = PRODUCTS.find((p) => p.id === id || p.slug === id);
+      const local = PRODUCTS.find((p) => p.id === id);
       if (local) {
         if (mounted) {
           setProduct(local);
@@ -92,7 +91,6 @@ export default function ProductPage() {
           images: Array.isArray(data.images) ? data.images : data.images ? [data.images] : [],
           category: data.category,
           createdAt: data.createdAt,
-          slug: data.slug,
         };
 
         if (mounted) {
