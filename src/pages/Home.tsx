@@ -3,17 +3,11 @@ import { Link } from "react-router-dom";
 import { PRODUCTS as LOCAL_PRODUCTS } from "../data/products";
 import type { Product } from "../data/products";
 import { useEffect, useMemo, useState } from "react";
+import heroImg from "../assets/hero.jpg";
 
-// hero image (uploaded file path — your infra will serve/transform it)
-const heroImg = "/mnt/data/0b7909e4-3e9c-4118-a9f7-de5e06b4b33e.png";
-
-/**
- * Try to fetch products from Firestore and return array of products.
- * If Firestore is not configured / fails, this will throw and caller should fallback.
- */
+/** Firestore fetch (same behavior — throws if not configured) */
 async function fetchProductsFromFirestore(limitCount = 200): Promise<Product[]> {
   try {
-    // dynamic import of firebase modular SDK
     const { getApp, initializeApp } = await import("firebase/app");
     const {
       getFirestore,
@@ -28,7 +22,6 @@ async function fetchProductsFromFirestore(limitCount = 200): Promise<Product[]> 
     try {
       app = getApp();
     } catch (e) {
-      // init from env (Vite)
       const cfg = {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
         authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -54,21 +47,27 @@ async function fetchProductsFromFirestore(limitCount = 200): Promise<Product[]> 
         price: Number(data.price || 0),
         regularPrice: data.regularPrice ? Number(data.regularPrice) : undefined,
         images: Array.isArray(data.images) ? data.images : data.images ? [data.images] : [],
-        // optional fields
         category: data.category,
       } as Product;
     });
   } catch (err) {
-    // bubble up so caller can fallback to local products
     throw err;
   }
 }
 
-export default function Home() {
-  const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"featured" | "price-asc" | "price-desc">("featured");
+/** Utility: short text */
+function excerpt(s?: string, n = 110) {
+  if (!s) return "";
+  const t = s.replace(/\n+/g, " ").trim();
+  return t.length > n ? t.slice(0, n).trim() + "…" : t;
+}
 
-  // products state will contain merged list (firestore first, then local for missing)
+export default function Home() {
+  // product controls (search/filter live in products section)
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"featured" | "price-asc" | "price-desc">("featured");
+  const [category, setCategory] = useState<string | "all">("all");
+
   const [products, setProducts] = useState<Product[]>(LOCAL_PRODUCTS);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +80,6 @@ export default function Home() {
     fetchProductsFromFirestore(200)
       .then((arr) => {
         if (!mounted) return;
-        // merge firestore + local (firestore items take precedence by id)
         const byId = new Map<string, Product>();
         arr.forEach((p) => byId.set(p.id, p));
         LOCAL_PRODUCTS.forEach((p) => {
@@ -90,134 +88,219 @@ export default function Home() {
         setProducts(Array.from(byId.values()));
       })
       .catch((err) => {
-        // fallback: use local, but show a non-blocking error
-        console.warn("Firestore products not available, falling back to local:", err);
+        console.warn("Firestore products unavailable — falling back to local", err);
         if (mounted) {
           setProducts(LOCAL_PRODUCTS);
-          setError("Firestore পাওয়া যাচ্ছে না — লোকাল পণ্য দেখানো হচ্ছে।");
+          setError("লিভস্টোর/ফায়ারবেস পাওয়া যায়নি — লোকাল পণ্য দেখানো হচ্ছে।");
         }
       })
       .finally(() => {
         if (mounted) setLoading(false);
       });
+      {/* show fetch error if any */}
+      {error && (
+        <div className="max-w-screen-xl mx-auto px-6 py-3">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-yellow-700 rounded">
+            {error}
+          </div>
+        </div>
+      )}
+
 
     return () => {
       mounted = false;
     };
   }, []);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(String(p.category));
+    });
+    return ["all", ...Array.from(set)];
+  }, [products]);
+
   const filtered = useMemo(() => {
     let list = products.slice();
-    if (q.trim()) {
-      const s = q.trim().toLowerCase();
+
+    if (category !== "all") list = list.filter((p) => String(p.category) === category);
+
+    if (query.trim()) {
+      const s = query.trim().toLowerCase();
       list = list.filter(
         (p) =>
           (p.title || "").toString().toLowerCase().includes(s) ||
           (p.description || "").toString().toLowerCase().includes(s)
       );
     }
+
     if (sort === "price-asc") list.sort((a, b) => (a.price || 0) - (b.price || 0));
     if (sort === "price-desc") list.sort((a, b) => (b.price || 0) - (a.price || 0));
+
     return list;
-  }, [products, q, sort]);
+  }, [products, query, sort, category]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* HERO */}
-      <section className="bg-gradient-to-r from-blue-50 to-white border-b">
-        <div className="max-w-screen-xl mx-auto px-6 py-16 lg:py-24 flex flex-col lg:flex-row items-center gap-10">
-          <div className="flex-1 max-w-xl">
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
-              স্মার্ট হোমে স্বাগতম — <span className="text-blue-600">বাঁচান সময়, বাঁচান বিদ্যুত</span>
+      <header className="relative overflow-hidden">
+        <div className="max-w-screen-xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-7 space-y-6">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-white px-3 py-1 rounded-full text-sm text-blue-700 w-max shadow-sm">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 2v6"/><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M5 11h14"/><path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 22v-6"/></svg>
+              জনপ্রিয় — ট্রাস্টেড গ্যাজেট
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
+              স্মার্ট হোমের উন্নত্‌ অভিজ্ঞতা — <span className="text-indigo-600">কম খরচে</span>
             </h1>
-            <p className="mt-4 text-gray-600 text-lg">
-              বাছাইকৃত স্মার্ট গ্যাজেট ও হোম অ্যাক্সেসরিজ — সাশ্রয়ী দামে, দ্রুত ডেলিভারি সহ।
+
+            <p className="text-gray-600 max-w-2xl">
+              শক্তি সাশ্রয়ী ডিভাইস, নিরাপদ কনফিগারেশন এবং ব্যবহার বান্ধব ইন্টারফেস — আপনার ঘরকে করে তুলুন স্মার্ট, সহজ ও আরামদায়ক।
             </p>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/all-products"
-                className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-md"
-              >
+            <div className="flex flex-wrap gap-3 items-center">
+              <Link to="/all-products" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-lg shadow-md font-medium">
                 সকল প্রোডাক্ট দেখুন
               </Link>
 
-              <Link
-                to="/product/prod-001"
-                className="inline-flex items-center justify-center border border-gray-300 px-6 py-3 rounded-lg text-gray-700 hover:bg-gray-100 shadow-sm"
-              >
-                হিট প্রোডাক্ট
+              <Link to="/offers" className="inline-flex items-center gap-2 border border-gray-200 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                আজকের ডিল
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex-1 flex items-center bg-white border shadow-sm rounded-lg px-3 py-2">
-                <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                </svg>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="প্রোডাক্ট সার্চ করুন..." className="bg-transparent outline-none w-full text-sm" />
-                {q && <button onClick={() => setQ("")} className="text-gray-400 text-sm px-2">✕</button>}
-              </div>
-
-              <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="text-sm rounded-lg border px-4 py-2 bg-white shadow-sm">
-                <option value="featured">Featured</option>
-                <option value="price-asc">Price: Low → High</option>
-                <option value="price-desc">Price: High → Low</option>
-              </select>
+            <div className="mt-6">
+              <ul className="flex flex-wrap gap-2 text-xs">
+                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">Free shipping 500৳+</li>
+                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">30-day returns</li>
+                <li className="px-3 py-1 bg-white rounded-full text-gray-700 shadow-sm">Secure checkout</li>
+              </ul>
             </div>
-
-            {error && <p className="mt-3 text-sm text-yellow-700">{error}</p>}
           </div>
 
-          <div className="flex-1 hidden lg:block">
-            <div className="rounded-xl overflow-hidden shadow-xl">
-              <img src={heroImg} alt="hero" className="w-full h-80 object-cover" />
+          <div className="lg:col-span-5 flex justify-end">
+            <div className="rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg transform hover:scale-[1.01] transition">
+              <img src={heroImg} alt="hero" className="w-full h-96 object-cover" loading="lazy" />
+              <div className="p-4 bg-gradient-to-t from-black/30 to-transparent text-white">
+                <div className="text-sm font-semibold">Limited collection</div>
+                <div className="text-xs mt-1">বাছাইকৃত ভালো পণ্য, সীমিত স্টকে</div>
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
       {/* PRODUCTS */}
-      <section className="max-w-screen-xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">সর্বশেষ পণ্য</h2>
-          <div className="text-sm text-gray-500">{filtered.length} টি পণ্য</div>
+      <main className="max-w-screen-xl mx-auto px-6 py-12">
+        {/* heading + controls */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">সর্বশেষ পণ্য</h2>
+            <div className="text-sm text-gray-500 mt-1">{filtered.length} টি পণ্য পাওয়া গেছে</div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="প্রোডাক্ট নাম/বর্ণনা দিয়ে সার্চ করুন..."
+                className="pl-10 pr-3 py-2 rounded-lg border bg-white shadow-sm w-64 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                aria-label="Search products"
+              />
+              <svg className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+            </div>
+
+            <div className="text-sm text-gray-600 hidden sm:block">Category:</div>
+            <div className="flex gap-2 flex-wrap">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCategory(c as any)}
+                  className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                    category === c ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {c === "all" ? "All" : c}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as any)}
+              className="ml-2 text-sm rounded-lg border px-3 py-2 bg-white shadow-sm"
+              aria-label="Sort products"
+            >
+              <option value="featured">Featured</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+            </select>
+          </div>
         </div>
 
+        {/* product grid */}
         {loading ? (
           <div className="text-center py-12 text-gray-500">Loading products…</div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((p: Product) => (
-              <article key={p.id} className="bg-white rounded-xl shadow-sm border hover:shadow-xl transition overflow-hidden">
-                <Link to={`/product/${p.id}`} className="block">
-                  <div className="w-full h-56 overflow-hidden bg-gray-100">
-                    <img src={p.images?.[0] || "/placeholder.png"} alt={p.title} className="w-full h-full object-cover transform hover:scale-105 transition duration-300" />
-                  </div>
-                </Link>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filtered.map((p) => (
+                <article key={p.id} className="relative bg-white rounded-2xl shadow-md overflow-hidden group hover:shadow-xl transition">
+                  <div className="relative">
+                    <Link to={`/product/${p.id}`} state={{ product: p }} className="block">
+                      <div className="w-full h-56 bg-gray-100 overflow-hidden">
+                        <img
+                          src={p.images?.[0] || "/placeholder.png"}
+                          alt={p.title}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition duration-300"
+                          loading="lazy"
+                        />
+                      </div>
+                    </Link>
 
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-800 text-base line-clamp-1">{p.title}</h3>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{typeof p.description === "string" ? p.description : ""}</p>
-
-                  <div className="mt-3 flex justify-between items-center">
-                    <div>
-                      <span className="text-lg font-bold text-gray-900">৳ {Number(p.price).toLocaleString()}</span>
-                      {p.regularPrice && <p className="text-xs text-gray-400 line-through">৳ {Number(p.regularPrice).toLocaleString()}</p>}
+                    {/* price badge */}
+                    <div className="absolute right-3 top-3 bg-white/90 px-3 py-1 rounded-full text-sm font-semibold text-indigo-700 shadow-sm">
+                      ৳ {Number(p.price).toLocaleString()}
                     </div>
 
-                    <Link to={`/product/${p.id}`} className="px-3 py-2 bg-blue-600 text-white text-xs rounded-lg shadow hover:bg-blue-700">Buy</Link>
+                    {/* quick actions overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-end justify-center opacity-0 group-hover:opacity-100">
+                      <div className="mb-4 flex gap-2">
+                        <Link to={`/product/${p.id}`} state={{ product: p }} className="bg-white px-3 py-2 rounded-lg text-sm font-medium shadow hover:bg-gray-100">View</Link>
+                        <button className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700">Add</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
 
-        {filtered.length === 0 && !loading && (
-          <div className="text-center py-16 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>
+                  <div className="p-4">
+                    <h3 className="text-base font-semibold text-gray-800 line-clamp-2">{p.title}</h3>
+                    <p className="text-xs text-gray-500 mt-2 line-clamp-3">{excerpt(p.description, 120)}</p>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <div>
+                        {p.regularPrice && <div className="text-xs text-gray-400 line-through">৳ {Number(p.regularPrice).toLocaleString()}</div>}
+                        <div className="text-sm text-gray-700">{p.category ?? ""}</div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm text-gray-500">Rating</div>
+                        <div className="text-xs text-gray-400">⭐⭐⭐⭐☆</div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</div>
+            )}
+          </>
         )}
-      </section>
+      </main>
     </div>
   );
 }

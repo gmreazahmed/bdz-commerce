@@ -99,12 +99,7 @@ export default function AllProducts() {
             </p>
           </div>
 
-          <Link
-            to="/admin/add-product"
-            className="text-sm px-3 py-2 bg-blue-600 text-white rounded"
-          >
-            Add product
-          </Link>
+          {/* Add product link removed so the page is fully public (no admin CTA) */}
         </div>
 
         {loading ? (
